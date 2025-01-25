@@ -3,7 +3,7 @@ use std::{
     env,
     fs::{self, copy, File},
     io::Read,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
     str::FromStr,
 };
@@ -16,9 +16,9 @@ const DIFF_FILE_PATH_PREFIX: &str = "+++ b/"; // diff 出力において、追�
 const DIFF_FILE_PATH_PREFIX_LEN: usize = DIFF_FILE_PATH_PREFIX.len();
 
 /// 差分処理、一時ファイル作成
-pub fn create_temp_files(
+pub fn create_temp_files<P: AsRef<Path>>(
     user_request_data: &UserRequestData,
-    config_path: &str,
+    config_path: P,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     // ディレクトリ移動
     env::set_current_dir(&user_request_data.source_path)?;
