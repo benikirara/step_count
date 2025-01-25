@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::UserRequestData;
+use super::UserRequestData;
 
 /// diff 出力における追加ファイルのパスプレフィックス
 const DIFF_FILE_PATH_PREFIX: &str = "+++ b/"; // diff 出力において、追加されたファイルのパスは "+++ b/" で始まる。

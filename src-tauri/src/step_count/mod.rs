@@ -46,7 +46,8 @@ impl UserRequestData {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[allow(dead_code)]
+fn step_count_exec() -> Result<(), Box<dyn std::error::Error>> {
     // ユーザーから情報を取得
     let user_request_data = UserRequestData::new()?;
 
