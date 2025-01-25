@@ -1,0 +1,4 @@
+{
+    "included_extensions": ["cs", "sql"],
+    "exclude_files": [".designer.cs", "Reference.cs"]
+  }
