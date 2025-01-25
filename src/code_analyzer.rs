@@ -1,9 +1,9 @@
+use regex::Regex;
 use std::{
     fs::{self, File},
     io::{self, BufRead, Write},
     path::Path,
 };
-use regex::Regex;
 
 /// 変更行を整形する
 pub fn filter_lines(original_path: &Path, temp_file_path: &Path) -> io::Result<()> {
@@ -32,9 +32,10 @@ pub fn filter_lines(original_path: &Path, temp_file_path: &Path) -> io::Result<(
             let actual_line = line[1..].trim();
 
             // 空行、コメント行、波括弧のみの行でない場合、一時ファイルに書き込む
-            if !actual_line.is_empty() &&
-                !comment_regex.is_match(actual_line) &&
-                !bracket_regex.is_match(actual_line) {
+            if !actual_line.is_empty()
+                && !comment_regex.is_match(actual_line)
+                && !bracket_regex.is_match(actual_line)
+            {
                 writeln!(writer, "{}", actual_line)?;
             }
         }
