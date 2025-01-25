@@ -1,36 +1,71 @@
-use std::{io, fs};
-mod config;
-mod diff_processor;
 mod code_analyzer;
-use std::path::PathBuf;
+mod diff_processor;
 
-use config::get_input;
-use diff_processor::create_temp_files;
 use code_analyzer::{count_lines_in_directory, filter_lines};
+use diff_processor::create_temp_files;
+
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
+use std::{fs, io};
+
+use anyhow::Result;
+
+/// コンフィグファイルのパス.`config.json`は実行モジュールと同じ階層に配置する想定
+const CONFIG_PATH: &str = "config.json";
+
+/// ユーザーからのインプットを管理する構造体
+struct UserRequestData {
+    /// ソースコードパス
+    pub source_path: String,
+    /// 開始リビジョン
+    pub start_revision: String,
+    /// 終了リビジョン
+    pub end_revision: String,
+    /// ユーザー名
+    pub user_name: String,
+}
+
+impl UserRequestData {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            source_path: Self::get_input("ソースコードのパスを入力してください: ")?,
+            start_revision: Self::get_input("開始リビジョンを入力してください: ")?,
+            end_revision: Self::get_input("終了リビジョンを入力してください: ")?,
+            user_name: Self::get_input("ユーザー名を入力してください: ")?,
+        })
+    }
+
+    /// ユーザーからの入力を取得する
+    /// 注：入力を受け取って前後の空白を削除した文字列を返す
+    fn get_input(prompt: &str) -> Result<String> {
+        print!("{prompt}");
+        io::stdout().flush()?; // 出力をフラッシュ (即時表示するため)
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        Ok(input.trim().to_string()) // 入力文字列の前後にある空白を削除して返す
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ユーザーから情報を取得
-    let source_path = get_input("ソースコードのパスを入力してください: ")?;
-    let start_revision = get_input("開始リビジョンを入力してください: ")?;
-    let end_revision = get_input("終了リビジョンを入力してください: ")?;
-    let user_name = get_input("ユーザー名を入力してください: ")?;
-
-    // config.jsonは実行モジュールと同じ階層に配置する想定
-    let config_path = "config.json";
+    let user_request_data = UserRequestData::new()?;
 
     // config.json が存在するか確認
-    if !std::path::Path::new(config_path).exists() {
+    if !Path::new(CONFIG_PATH).try_exists()? {
         eprintln!("エラー: config.json が見つかりません。実行ファイルと同じディレクトリに配置してください。");
         return Err("config.json not found".into());
     }
 
     // 一時ファイル作成
-    let temp_dir_path = create_temp_files(&source_path, &start_revision, &end_revision, &user_name, config_path)?;
+    let temp_dir_path = create_temp_files(&user_request_data, CONFIG_PATH)?;
     let temp_file_path = temp_dir_path.join("temp_file.txt");
 
     // 変更行のフィルタリング
-    if let Err(e) = filter_lines(&PathBuf::from(&source_path), &temp_file_path){
-        eprintln!("filter_linesでエラーが発生しました: {}",e);
+    if let Err(e) = filter_lines(
+        &PathBuf::from(&user_request_data.source_path),
+        &temp_file_path,
+    ) {
+        eprintln!("filter_linesでエラーが発生しました: {}", e);
         return Err(e.into());
     }
 
@@ -41,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 出力
     println!("総ステップ数: {}", total_lines);
     println!("一時ディレクトリパス: {}", temp_dir_path.display());
-    println!("ユーザー名: {}", user_name);
+    println!("ユーザー名: {}", user_request_data.user_name);
     println!("エンターキーを押して続行...");
     io::stdin().read_line(&mut String::new())?;
 
