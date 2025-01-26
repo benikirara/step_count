@@ -1,19 +1,25 @@
-use serde_json::Value;
 use std::{
     env,
     fs::{self, copy, File},
-    io::Read,
     path::PathBuf,
     process::{Command, Stdio},
     str::FromStr,
 };
 
 use crate::UserRequestData;
+use serde::Deserialize;
 
 /// diff 出力における追加ファイルのパスプレフィックス
 const DIFF_FILE_PATH_PREFIX: &str = "+++ b/"; // diff 出力において、追加されたファイルのパスは "+++ b/" で始まる。
 /// diff 出力における追加ファイルのパスプレフィックスの長さ
 const DIFF_FILE_PATH_PREFIX_LEN: usize = DIFF_FILE_PATH_PREFIX.len();
+
+/// `config.json`の構造体
+#[derive(Deserialize)]
+struct AppConfig {
+    included_extensions: Vec<String>,
+    exclude_files: Vec<String>,
+}
 
 /// 差分処理、一時ファイル作成
 pub fn create_temp_files(
@@ -25,28 +31,10 @@ pub fn create_temp_files(
 
     // config.json を読み込む
     let config_file = File::open(config_path)?;
-    let mut config_string = String::new();
-    let mut buf_reader = std::io::BufReader::new(config_file);
-    buf_reader.read_to_string(&mut config_string)?;
+    let buf_reader = std::io::BufReader::new(config_file);
 
     // JSON をパース
-    let config: Value = serde_json::from_str(&config_string)?;
-
-    // config.json から拡張子と除外ファイル名のリストを取得
-    // カウント対象の拡張子
-    let included_extensions = config["included_extensions"]
-        .as_array()
-        .unwrap_or(&vec![])
-        .iter()
-        .map(|v| v.as_str().unwrap_or("").to_string())
-        .collect::<Vec<String>>();
-    // カウントから除外するファイル名（部分一致）
-    let exclude_files = config["exclude_files"]
-        .as_array()
-        .unwrap_or(&vec![])
-        .iter()
-        .map(|v| v.as_str().unwrap_or("").to_string())
-        .collect::<Vec<String>>();
+    let app_config: AppConfig = serde_json::from_reader(buf_reader)?;
 
     // git diff コマンドを実行し、差分を取得 (--author オプションでユーザーを絞り込む)
     let output = Command::new("git")
@@ -106,7 +94,7 @@ pub fn create_temp_files(
 
             // 拡張子が included_extensions に含まれていない場合は除外
             if let Some(ext) = extension {
-                if !included_extensions.contains(&ext.to_string()) {
+                if !app_config.included_extensions.contains(&ext.to_string()) {
                     is_excluded = true;
                 }
             } else {
@@ -114,11 +102,12 @@ pub fn create_temp_files(
             }
 
             // ファイル名が exclude_files に含まれている場合は除外
-            if exclude_files
+            if app_config
+                .exclude_files
                 .iter()
                 .any(|name| file_name_str.ends_with(name))
             {
-                is_excluded = true;
+                is_excluded = true
             }
 
             // 除外対象でない場合、一時ファイルにコピーし、CountFile ディレクトリに移動
