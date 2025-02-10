@@ -1,6 +1,6 @@
+use anyhow::Result;
 use std::fs;
 use std::io::{self, BufRead};
-use anyhow::Result;
 
 /// 行数を数える
 pub fn count_lines(backup_path: &str) -> Result<usize> {

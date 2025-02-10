@@ -1,14 +1,18 @@
-use std::fs;
-use std::path::Path;
 use anyhow::Result;
 use regex::Regex;
+use std::fs;
+use std::path::Path;
 
-use crate:: config::Config;
+use crate::config::Config;
 
 // 追加された行を一時ディレクトリに保存する
 pub fn filter_and_save(output_file_path: &str, file: &str, added_lines: &[String]) -> Result<()> {
     if !added_lines.is_empty() {
-        let destination_file_path = format!("{}/{}", output_file_path, Path::new(file).file_name().unwrap().to_str().unwrap());
+        let destination_file_path = format!(
+            "{}/{}",
+            output_file_path,
+            Path::new(file).file_name().unwrap().to_str().unwrap()
+        );
         fs::write(destination_file_path, added_lines.join("\n"))?;
     }
     Ok(())
@@ -70,6 +74,3 @@ pub fn should_include(file: &str, config: &Config) -> bool {
     // exclude_filesに含まれていないかチェック
     !excl_regex.is_match(file_name)
 }
-
-
-

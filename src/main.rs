@@ -1,11 +1,11 @@
-mod user_request;
-mod git_diff;
-mod file_filter;
-mod line_counter;
 mod config;
+mod file_filter;
+mod git_diff;
+mod line_counter;
+mod user_request;
 
-use std::error::Error;
 use std::env;
+use std::error::Error;
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -13,9 +13,9 @@ use std::path::Path;
 use crate::config::Config;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    const CONFIG_PATH: &str = "config.json?";
+    const CONFIG_PATH: &str = "config.json";
     let config_path = Path::new(CONFIG_PATH);
-    
+
     // config.jsonを読み込む (実行時のカレントディレクトリに配置されている想定)
     let config = Config::from_file(config_path).unwrap_or_else(|why| {
         use config::ConfigError::*;
@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             IoError(error) => eprintln!("{:?}の読み込みに失敗しました.\n{}", config_path, error),
             SerdeError(error) => eprintln!("コンフィグのパースに失敗しました.\n{}", error),
         };
-        
+
         eprintln!("エンターキーを押して終了");
         std::io::stdin().read(&mut [0u8]).unwrap();
         std::process::exit(1);
@@ -36,12 +36,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     env::set_current_dir(&user_request.source_path)?;
 
     // 変更されたファイルのリストを取得
-    let changed_files = git_diff::get_changed_files(&user_request.git_rev, &user_request.author_name)?;
+    let changed_files =
+        git_diff::get_changed_files(&user_request.git_rev, &user_request.author_name)?;
 
     // ユーザーの一時ディレクトリにCountTempFileを作成
     let mut output_file_path = env::temp_dir();
     output_file_path.push("CountTempFile");
-    
+
     if !output_file_path.exists() {
         fs::create_dir_all(&output_file_path)?;
     }
@@ -59,7 +60,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // 必要なファイルを移動
-    file_filter::move_files(output_file_path.to_str().unwrap(), backup_path.to_str().unwrap(), &config)?;
+    file_filter::move_files(
+        output_file_path.to_str().unwrap(),
+        backup_path.to_str().unwrap(),
+        &config,
+    )?;
 
     // 総行数をカウント
     let total_lines = line_counter::count_lines(backup_path.to_str().unwrap())?;

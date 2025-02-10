@@ -1,5 +1,5 @@
-use std::process::Command;
 use anyhow::Result;
+use std::process::Command;
 
 /// 特定のユーザーによる変更ファイルのリストを取得する
 pub fn get_changed_files(git_rev: &str, author_name: &str) -> Result<String> {
@@ -15,12 +15,10 @@ pub fn get_changed_files(git_rev: &str, author_name: &str) -> Result<String> {
     println!("\nExecuting Command: {}", command_str);
     println!("しばらくお待ちください...");
 
-    let output = Command::new("git")
-        .args(&args)
-        .output()?;
+    let output = Command::new("git").args(&args).output()?;
 
     if !output.status.success() {
-        return Err(anyhow::anyhow!{
+        return Err(anyhow::anyhow! {
             "Git command failed with error: {}",
             String::from_utf8_lossy(&output.stderr)
         });
@@ -54,8 +52,7 @@ pub fn get_added_lines(git_rev: &str, file: &str) -> Result<Vec<String>> {
     for line in diff_output_str.lines() {
         if line.starts_with('+') && !line.starts_with("++") {
             let trimmed_line = line[1..].trim();
-            if !trimmed_line.is_empty() &&
-               !trimmed_line.starts_with("//") {
+            if !trimmed_line.is_empty() && !trimmed_line.starts_with("//") {
                 added_lines.push(trimmed_line.to_string());
             }
         }
@@ -63,5 +60,3 @@ pub fn get_added_lines(git_rev: &str, file: &str) -> Result<Vec<String>> {
 
     Ok(added_lines)
 }
-
-
