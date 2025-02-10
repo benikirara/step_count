@@ -25,6 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         eprintln!("エンターキーを押して終了");
+        #[allow(clippy::unused_io_amount)]
         std::io::stdin().read(&mut [0u8]).unwrap();
         std::process::exit(1);
     });
@@ -48,26 +49,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // 各変更ファイルに対して追加された行を取得・保存
-    for file in changed_files.lines() {
-        let added_lines = git_diff::get_added_lines(&user_request.git_rev, file)?;
-        file_filter::filter_and_save(output_file_path.to_str().unwrap(), file, &added_lines)?;
+    for file_path in changed_files {
+        let added_lines = git_diff::get_added_lines(&user_request.git_rev, &file_path)?;
+        file_filter::filter_and_save(output_file_path.to_str().unwrap(), file_path, &added_lines)?;
     }
 
     // バックアップ用のディレクトリを作成
     let backup_path = output_file_path.join("Countfile");
-    if backup_path.exists() {
+    if !backup_path.exists() {
         fs::create_dir_all(&backup_path)?;
     }
 
     // 必要なファイルを移動
-    file_filter::move_files(
-        output_file_path.to_str().unwrap(),
-        backup_path.to_str().unwrap(),
-        &config,
-    )?;
+    file_filter::move_files(&output_file_path, &backup_path, &config)?;
 
     // 総行数をカウント
-    let total_lines = line_counter::count_lines(backup_path.to_str().unwrap())?;
+    let total_lines = line_counter::count_lines(backup_path)?;
     println!("\n総ステップ数: {}", total_lines);
 
     // CountTempFileのパスを表示し、終了メッセージ表示

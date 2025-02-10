@@ -1,8 +1,12 @@
 use anyhow::Result;
-use std::process::Command;
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+    str::FromStr,
+};
 
 /// 特定のユーザーによる変更ファイルのリストを取得する
-pub fn get_changed_files(git_rev: &str, author_name: &str) -> Result<String> {
+pub fn get_changed_files(git_rev: &str, author_name: &str) -> Result<Vec<PathBuf>> {
     let mut args = vec!["log", git_rev, "--name-only", "--pretty=format:"];
 
     // `author_name`が空の場合、すべてのユーザーの変更を対象とする
@@ -24,13 +28,23 @@ pub fn get_changed_files(git_rev: &str, author_name: &str) -> Result<String> {
         });
     }
 
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    let mut changed_path = Vec::new();
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    for path_str in stdout.lines() {
+        changed_path.push(
+            PathBuf::from_str(path_str.trim())
+                .unwrap_or_else(|_| panic!("failure {path_str} to PathBuf")),
+        );
+    }
+
+    Ok(changed_path)
 }
 
 /// 整形する(空白行、コメント行をはじき、追加行のみにする)
-pub fn get_added_lines(git_rev: &str, file: &str) -> Result<Vec<String>> {
+pub fn get_added_lines<P: AsRef<Path>>(git_rev: &str, file: P) -> Result<Vec<String>> {
     let output = Command::new("git")
-        .args(&["diff", git_rev, "--", file])
+        .args(["diff", git_rev, "--", file.as_ref().to_str().unwrap()])
         .output()?;
     let diff_output_str = String::from_utf8_lossy(&output.stdout);
 

@@ -6,20 +6,25 @@ use std::path::Path;
 use crate::config::Config;
 
 // 追加された行を一時ディレクトリに保存する
-pub fn filter_and_save(output_file_path: &str, file: &str, added_lines: &[String]) -> Result<()> {
+pub fn filter_and_save<T: AsRef<Path>, U: AsRef<Path>>(
+    output_file_path: T,
+    file: U,
+    added_lines: &[String],
+) -> Result<()> {
     if !added_lines.is_empty() {
-        let destination_file_path = format!(
-            "{}/{}",
-            output_file_path,
-            Path::new(file).file_name().unwrap().to_str().unwrap()
-        );
+        let file_name = file.as_ref().file_name().unwrap().to_str().unwrap();
+        let destination_file_path = output_file_path.as_ref().join(file_name);
         fs::write(destination_file_path, added_lines.join("\n"))?;
     }
     Ok(())
 }
 
 // フィルタリング条件に基づき、対象ファイルをバックアップディレクトリに移動する
-pub fn move_files(output_file_path: &str, backup_path: &str, config: &Config) -> Result<()> {
+pub fn move_files<T: AsRef<Path>, U: AsRef<Path>>(
+    output_file_path: T,
+    backup_path: U,
+    config: &Config,
+) -> Result<()> {
     for entry in fs::read_dir(output_file_path)? {
         let entry = entry?;
         let path = entry.path();
@@ -35,7 +40,7 @@ pub fn move_files(output_file_path: &str, backup_path: &str, config: &Config) ->
                     Some(name) => name,
                     None => continue,
                 };
-                let destination_path = format!("{}/{}", backup_path, file_name);
+                let destination_path = backup_path.as_ref().join(file_name);
                 fs::rename(&path, destination_path)?;
             }
         }
